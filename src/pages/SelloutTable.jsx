@@ -386,7 +386,7 @@ const Modal = styled.div`
       {/* Modal Edit */}
       {editItem && (
         <div className="fixed inset-0 bg-black bg-opacity-40 flex justify-center items-center z-50">
-          <Modal className="bg-white rounded-lg shadow-lg p-6 w-full max-w-lg">
+          <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-lg">
             <h2 className="text-lg font-bold mb-4">Edit Data</h2>
             < div className="grid grid-cols-2 gap-4">
               {["date", "name", "region", "store", "city", "target", "actual", "group", "ach"].map(key => (
@@ -406,7 +406,7 @@ const Modal = styled.div`
                 {isSaving ? "Menyimpan..." : "Simpan"}
               </button>
             </div>
-          </Modal>
+          </div>
         </div>
       )}
 
