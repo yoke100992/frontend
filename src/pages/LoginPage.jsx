@@ -51,7 +51,7 @@ export default function LoginPage() {
           </div>
 
           <footer className="mt-10 text-center text-xs text-gray-400">
-            &copy; <a href="https://sada.co.id" className="text-blue-600 hover:underline">SADA TECHNOLOGY</a> 2019 - 2025
+            &copy; <a href="https://excel.praktis.com" className="text-blue-600 hover:underline">EXCEL PRAKTIS</a> 2019 - 2025
           </footer>
         </div>
 
