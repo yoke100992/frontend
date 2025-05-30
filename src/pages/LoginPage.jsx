@@ -33,7 +33,7 @@ export default function LoginPage() {
               alt="SADATA Logo"
               className="w-12 h-12 drop-shadow transition-transform duration-500 hover:scale-110 hover:rotate-6"
             />
-            <h1 className="text-3xl font-bold text-gray-800 tracking-wide">G-SHEET TO WEB APP</h1>
+            <h1 className="text-3xl font-bold text-gray-800 tracking-wide">G-SHEET TO WEB APP by Excel.Praktis</h1>
           </div>
 
           <p className="text-gray-600 mb-6 text-sm">
