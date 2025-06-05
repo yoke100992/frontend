@@ -1,0 +1,8 @@
+
+
+git remote set-url origin https://github.com/Yoke99899/yoketech.git
+git remote set-url origin https://github.com/yoke100992/frontend.git
+git add .
+git commit -m "initial push"
+git pull origin main --rebase
+git push -u origin main

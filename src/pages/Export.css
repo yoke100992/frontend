@@ -1,0 +1,25 @@
+/* file: export.css */
+.table-container {
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+  overflow-x: auto;
+  padding: 20px;
+}
+
+.table-custom {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.table-custom th {
+  background: linear-gradient(to right, #3b82f6, #9333ea);
+  color: white;
+  padding: 12px;
+  font-size: 14px;
+}
+
+.table-custom td {
+  border: 1px solid #ddd;
+  padding: 10px;
+}
