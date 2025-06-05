@@ -220,14 +220,48 @@ const exportWithImages = async () => {
   saveAs(new Blob([buffer]), filename);
 };
 
-  const handleDelete = async (item) => {
-    try {
-      await remove(ref(db, `catatan_keuangan/${item.id}`));
-      setDeleteItem(null);
-    } catch (err) {
-      alert("❌ Gagal menghapus: " + err.message);
-    }
-  };
+  const handleSave = async () => {
+  setIsSaving(true);
+  const isEdit = !!editItem;
+  const item = isEdit ? editItem : newItem;
+
+  try {
+    const snapshot = await get(ref(db, "catatan_keuangan"));
+    const allData = snapshot.val() || {};
+    const nextId = isEdit ? item.id : Math.max(0, ...Object.keys(allData).map(Number)) + 1;
+
+    const nominal = parseFloat(item.nominal || 0);
+
+    const payload = {
+      id: nextId,
+      tanggal: item.tanggal,
+      keterangan: item.keterangan,
+      jenis: item.jenis,
+      nominal,
+      dokumentasi1: item.dokumentasi1 || "",
+      dokumentasi2: item.dokumentasi2 || "",
+      dokumentasi3: item.dokumentasi3 || "",
+    };
+
+    await set(ref(db, `catatan_keuangan/${nextId}`), payload);
+    setNewItem(null);
+    setEditItem(null);
+  } catch (err) {
+    alert("❌ Gagal menyimpan: " + err.message);
+  }
+
+  setIsSaving(false);
+};
+
+const handleDelete = async (item) => {
+  try {
+    await remove(ref(db, `catatan_keuangan/${item.id}`));
+    setDeleteItem(null);
+  } catch (err) {
+    alert("❌ Gagal menghapus: " + err.message);
+  }
+};
+
 
   return (
     <div className="p-4 text-sm">
