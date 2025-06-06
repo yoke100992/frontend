@@ -1,13 +1,14 @@
 import React, { useEffect, useState, useRef } from "react";
 import { db, ref, get, set, remove, onValue } from "../firebase-catatankeuangan";
-import { FaTrash, FaEdit, FaPlus } from "react-icons/fa";
+import { FaTrash, FaEdit, FaPlus, FaArrowUp, FaArrowDown, FaWallet } from "react-icons/fa";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import Chart from "chart.js/auto";
 import ExcelJS from "exceljs";
 import { saveAs } from "file-saver";
-
-
+import { Sparklines, SparklinesLine } from 'react-sparklines';
+import { Tooltip as ReactTooltip } from 'react-tooltip';
+import 'react-tooltip/dist/react-tooltip.css';
 
 export default function CatatanKeuangan() {
   const [data, setData] = useState([]);
@@ -46,6 +47,14 @@ export default function CatatanKeuangan() {
   const totalPemasukan = data.reduce((sum, d) => sum + (d.jenis === "Pemasukan" ? parseFloat(d.nominal) : 0), 0);
   const totalPengeluaran = data.reduce((sum, d) => sum + (d.jenis === "Pengeluaran" ? parseFloat(d.nominal) : 0), 0);
   const totalSaldo = totalPemasukan - totalPengeluaran;
+
+  const today = new Date().toISOString().split("T")[0];
+  const yesterday = new Date(Date.now() - 86400000).toISOString().split("T")[0];
+
+  const pemasukanHariIni = data.reduce((sum, d) => sum + (d.jenis === "Pemasukan" && d.tanggal === today ? parseFloat(d.nominal) : 0), 0);
+  const pemasukanKemarin = data.reduce((sum, d) => sum + (d.jenis === "Pemasukan" && d.tanggal === yesterday ? parseFloat(d.nominal) : 0), 0);
+  const pengeluaranHariIni = data.reduce((sum, d) => sum + (d.jenis === "Pengeluaran" && d.tanggal === today ? parseFloat(d.nominal) : 0), 0);
+  const pengeluaranKemarin = data.reduce((sum, d) => sum + (d.jenis === "Pengeluaran" && d.tanggal === yesterday ? parseFloat(d.nominal) : 0), 0);
 
   const formatCurrency = (num) =>
     Intl.NumberFormat("id-ID", {
@@ -143,84 +152,119 @@ export default function CatatanKeuangan() {
 
 const exportWithImages = async () => {
   const workbook = new ExcelJS.Workbook();
-  const sheet = workbook.addWorksheet("Catatan");
+  const sheet = workbook.addWorksheet("Catatan Keuangan");
 
-  // Header dan kolom
-  sheet.columns = [
-    { header: "Tanggal", key: "tanggal", width: 15 },
-    { header: "Jenis", key: "jenis", width: 15 },
-    { header: "Keterangan", key: "keterangan", width: 25 },
-    { header: "Nominal", key: "nominal", width: 15 },
-    { header: "Dok 1", key: "dok1", width: 15 },
-    { header: "Dok 2", key: "dok2", width: 15 },
-    { header: "Dok 3", key: "dok3", width: 15 },
-  ];
+  if (activeTab === 'detail') {
+    // Header dan kolom untuk detail
+    sheet.columns = [
+      { header: "Tanggal", key: "tanggal", width: 15 },
+      { header: "Jenis", key: "jenis", width: 15 },
+      { header: "Keterangan", key: "keterangan", width: 25 },
+      { header: "Nominal", key: "nominal", width: 15 },
+      { header: "Dok 1", key: "dok1", width: 15 },
+      { header: "Dok 2", key: "dok2", width: 15 },
+      { header: "Dok 3", key: "dok3", width: 15 },
+    ];
 
-  // Gaya header biru bold
-  sheet.getRow(1).eachCell((cell) => {
-    cell.fill = {
-      type: "pattern",
-      pattern: "solid",
-      fgColor: { argb: "FF1E90FF" }, // DodgerBlue
-    };
-    cell.font = { color: { argb: "FFFFFFFF" }, bold: true };
-    cell.alignment = { vertical: "middle", horizontal: "center" };
-    cell.border = {
-      top: { style: "thin" },
-      left: { style: "thin" },
-      bottom: { style: "thin" },
-      right: { style: "thin" },
-    };
-  });
-
-  for (let i = 0; i < filteredData.length; i++) {
-    const row = filteredData[i];
-    const rowIndex = i + 2;
-
-    // Tambah baris data biasa
-    sheet.addRow({
-      tanggal: row.tanggal,
-      jenis: row.jenis,
-      keterangan: row.keterangan,
-      nominal: row.nominal,
+    sheet.getRow(1).eachCell((cell) => {
+      cell.fill = {
+        type: "pattern",
+        pattern: "solid",
+        fgColor: { argb: "FF1E90FF" },
+      };
+      cell.font = { color: { argb: "FFFFFFFF" }, bold: true };
+      cell.alignment = { vertical: "middle", horizontal: "center" };
+      cell.border = {
+        top: { style: "thin" },
+        left: { style: "thin" },
+        bottom: { style: "thin" },
+        right: { style: "thin" },
+      };
     });
 
-    const docs = [row.dokumentasi1, row.dokumentasi2, row.dokumentasi3];
-    let hasImage = false;
+    for (let i = 0; i < filteredData.length; i++) {
+      const row = filteredData[i];
+      const rowIndex = i + 2;
 
-    docs.forEach((img, idx) => {
-      if (img) {
-        hasImage = true;
-        const imageId = workbook.addImage({
-          base64: img,
-          extension: "jpeg",
-        });
+      sheet.addRow({
+        tanggal: row.tanggal,
+        jenis: row.jenis,
+        keterangan: row.keterangan,
+        nominal: row.nominal,
+      });
 
-        sheet.addImage(imageId, {
-          tl: { col: 4 + idx, row: rowIndex - 1 },
-          ext: { width: 60, height: 60 },
-        });
+      const docs = [row.dokumentasi1, row.dokumentasi2, row.dokumentasi3];
+      let hasImage = false;
+
+      docs.forEach((img, idx) => {
+        if (img) {
+          hasImage = true;
+          const imageId = workbook.addImage({
+            base64: img,
+            extension: "jpeg",
+          });
+
+          sheet.addImage(imageId, {
+            tl: { col: 4 + idx, row: rowIndex - 1 },
+            ext: { width: 60, height: 60 },
+          });
+        }
+      });
+
+      if (hasImage) {
+        sheet.getRow(rowIndex).height = 45;
       }
-    });
-
-    if (hasImage) {
-      sheet.getRow(rowIndex).height = 45;
     }
   }
 
-  // Generate nama file berdasarkan tanggal + jam
-  const now = new Date();
-  const filename = `CatatanKeuangan-${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, "0")}${String(
-    now.getDate()
-  ).padStart(2, "0")}_${String(now.getHours()).padStart(2, "0")}${String(
-    now.getMinutes()
-  ).padStart(2, "0")}${String(now.getSeconds()).padStart(2, "0")}.xlsx`;
+  if (activeTab === 'rekap') {
+    // Header untuk rekap
+    sheet.columns = [
+      { header: "Bulan", key: "bulan", width: 20 },
+      { header: "Jenis", key: "jenis", width: 15 },
+      { header: "Nominal", key: "nominal", width: 20 },
+    ];
 
-  const buffer = await workbook.xlsx.writeBuffer();
-  saveAs(new Blob([buffer]), filename);
+    sheet.getRow(1).eachCell((cell) => {
+      cell.fill = {
+        type: "pattern",
+        pattern: "solid",
+        fgColor: { argb: "FF1E90FF" },
+      };
+      cell.font = { color: { argb: "FFFFFFFF" }, bold: true };
+      cell.alignment = { vertical: "middle", horizontal: "center" };
+      cell.border = {
+        top: { style: "thin" },
+        left: { style: "thin" },
+        bottom: { style: "thin" },
+        right: { style: "thin" },
+      };
+    });
+
+    const rekapMap = data.reduce((acc, item) => {
+      const month = new Date(item.tanggal).toLocaleDateString('id-ID', { month: 'long', year: 'numeric' });
+      const key = `${month}-${item.jenis}`;
+      if (!acc[key]) acc[key] = { bulan: month, jenis: item.jenis, nominal: 0 };
+      acc[key].nominal += parseFloat(item.nominal);
+      return acc;
+    }, {});
+
+    Object.values(rekapMap).forEach((row) => {
+      sheet.addRow(row);
+    });
+  }
+
+  const now = new Date();
+const timestamp = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}_${String(now.getHours()).padStart(2, "0")}-${String(now.getMinutes()).padStart(2, "0")}-${String(now.getSeconds()).padStart(2, "0")}`;
+
+const filename = `CatatanKeuangan-${activeTab}-${timestamp}.xlsx`;
+
+const buffer = await workbook.xlsx.writeBuffer();
+saveAs(new Blob([buffer]), filename);
 };
 
-  const handleSave = async () => {
+
+const handleSave = async () => {
   setIsSaving(true);
   const isEdit = !!editItem;
   const item = isEdit ? editItem : newItem;
@@ -262,26 +306,96 @@ const handleDelete = async (item) => {
   }
 };
 
-
+  const scorecards = [
+    {
+      label: "Saldo",
+      value: totalSaldo,
+      icon: <FaWallet />, color: "from-blue-500 to-blue-700",
+      tooltip: "Jumlah saldo saat ini",
+      trend: [1000, 2000, 3000, totalSaldo]
+    },
+    {
+      label: "Total Pemasukan",
+      value: totalPemasukan,
+      icon: <FaArrowUp />, color: "from-green-400 to-green-600",
+      tooltip: "Akumulasi semua pemasukan",
+      trend: [1000, 2500, 4000, totalPemasukan]
+    },
+    {
+      label: "Pemasukan Hari Ini",
+      value: pemasukanHariIni,
+      icon: <FaArrowUp />, color: "from-emerald-400 to-emerald-600",
+      tooltip: "Pemasukan yang tercatat hari ini",
+      trend: [0, pemasukanHariIni]
+    },
+    {
+      label: "Pemasukan Kemarin",
+      value: pemasukanKemarin,
+      icon: <FaArrowUp />, color: "from-lime-400 to-lime-600",
+      tooltip: "Pemasukan yang tercatat kemarin",
+      trend: [0, pemasukanKemarin]
+    },
+    {
+      label: "Pengeluaran Hari Ini",
+      value: pengeluaranHariIni,
+      icon: <FaArrowDown />, color: "from-red-400 to-red-600",
+      tooltip: "Pengeluaran yang tercatat hari ini",
+      trend: [0, pengeluaranHariIni]
+    },
+    {
+      label: "Pengeluaran Kemarin",
+      value: pengeluaranKemarin,
+      icon: <FaArrowDown />, color: "from-orange-400 to-orange-600",
+      tooltip: "Pengeluaran yang tercatat kemarin",
+      trend: [0, pengeluaranKemarin]
+    },
+    {
+      label: "Total Pengeluaran",
+      value: totalPengeluaran,
+      icon: <FaArrowDown />, color: "from-rose-500 to-rose-700",
+      tooltip: "Akumulasi semua pengeluaran",
+      trend: [1000, 1500, 2500, totalPengeluaran]
+    }
+  ];
+const [activeTab, setActiveTab] = useState('detail');
   return (
     <div className="p-4 text-sm">
-      <h2 className="text-xl font-bold text-center mb-4">Catatan Keuangan</h2>
-      <canvas ref={chartRef} style={{ display: 'none' }} />
+   <div className="mb-6 text-center">
+  <div className="flex justify-center items-center gap-2 mb-1">
+    <div className="text-green-500 text-3xl">
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="w-7 h-7">
+  <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 6.75A2.25 2.25 0 014.5 4.5h15a2.25 2.25 0 012.25 2.25v10.5A2.25 2.25 0 0119.5 19.5h-15a2.25 2.25 0 01-2.25-2.25V6.75zM2.25 9h19.5" />
+</svg>
+    </div>
+    <h2 className="text-3xl font-extrabold text-green-500 drop-shadow-sm">
+      Catatan Keuangan
+    </h2>
+  </div>
+  <p className="text-gray-500 text-sm">Kelola pemasukan & pengeluaran dengan mudah dan rapi</p>
+</div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-        <div className="bg-green-100 border border-green-400 p-4 rounded shadow">
-          <p className="text-gray-600">Total Pemasukan</p>
-          <p className="text-xl font-bold text-green-700">{formatCurrency(totalPemasukan)}</p>
-        </div>
-        <div className="bg-red-100 border border-red-400 p-4 rounded shadow">
-          <p className="text-gray-600">Total Pengeluaran</p>
-          <p className="text-xl font-bold text-red-700">{formatCurrency(totalPengeluaran)}</p>
-        </div>
-        <div className="bg-blue-100 border border-blue-400 p-4 rounded shadow">
-          <p className="text-gray-600">Saldo</p>
-          <p className="text-xl font-bold text-blue-700">{formatCurrency(totalSaldo)}</p>
-        </div>
+      <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 mb-4">
+  {scorecards.map((item, idx) => (
+    <div
+      key={idx}
+      className={`bg-gradient-to-r ${item.color} text-white px-3 py-2 rounded-lg shadow-md transition-all hover:scale-[1.02]`}
+      data-tooltip-id="tooltip-global"
+      data-tooltip-content={item.tooltip}
+    >
+      <div className="flex items-center gap-2 text-xs uppercase tracking-wide mb-1">
+        {item.icon}
+        <span>{item.label}</span>
       </div>
+      <p className="text-base font-semibold">{formatCurrency(item.value)}</p>
+      <Sparklines data={item.trend} height={24} margin={4}>
+        <SparklinesLine color="#ffffff80" style={{ strokeWidth: 2, fill: "none" }} />
+      </Sparklines>
+    </div>
+  ))}
+  <ReactTooltip id="tooltip-global" place="top" effect="solid" className="text-xs" />
+</div>
+
+
 
       <div className="flex flex-wrap gap-2 mb-4 items-center">
         <input type="text" placeholder="Cari keterangan..." className="border p-2 rounded" value={search} onChange={e => setSearch(e.target.value)} />
@@ -301,13 +415,68 @@ const handleDelete = async (item) => {
       </div>
 
       <div className="flex gap-2 mb-4">
-        <button onClick={() => setNewItem({})} className="bg-blue-600 text-white px-4 py-2 rounded"><FaPlus className="inline" /> Tambah</button>
+        
         <button onClick={exportWithImages} className="bg-green-700 text-white px-4 py-2 rounded">
-  Export Excel (Gambar)
+  Export Excel
 </button>
         <button onClick={exportToPDFWithImages} className="bg-red-600 text-white px-4 py-2 rounded">Export PDF</button>
       </div>
+<div className="mb-4 flex gap-2">
+  <button
+    onClick={() => setActiveTab('detail')}
+    className={`px-4 py-2 rounded-md font-semibold border ${activeTab === 'detail' ? 'bg-blue-600 text-white' : 'bg-white text-blue-600 border-blue-600'}`}
+  >
+    Data Harian
+  </button>
+  <button
+    onClick={() => setActiveTab('rekap')}
+    className={`px-4 py-2 rounded-md font-semibold border ${activeTab === 'rekap' ? 'bg-blue-600 text-white' : 'bg-white text-blue-600 border-blue-600'}`}
+  >
+    Rekap Bulanan
+  </button>
+</div>
 
+{activeTab === 'rekap' && (
+  <div className="overflow-x-auto rounded-lg border">
+    <table className="min-w-full text-sm text-left">
+      <thead className="bg-blue-800 text-white">
+        <tr>
+          <th className="px-4 py-2">Bulan</th>
+          <th className="px-4 py-2">Jenis</th>
+          <th className="px-4 py-2">Nominal</th>
+        </tr>
+      </thead>
+      <tbody>
+        {Object.values(
+          data.reduce((acc, item) => {
+            const month = new Date(item.tanggal).toLocaleDateString('id-ID', {
+              month: 'long',
+              year: 'numeric'
+            });
+            const key = `${month}-${item.jenis}`;
+            if (!acc[key]) acc[key] = { month, jenis: item.jenis, nominal: 0 };
+            acc[key].nominal += parseFloat(item.nominal);
+            return acc;
+          }, {})
+        ).map((row, i) => (
+          <tr key={i} className="border-b hover:bg-gray-100">
+            <td className="px-4 py-2 whitespace-nowrap">{row.month}</td>
+            <td className="px-4 py-2 whitespace-nowrap">{row.jenis}</td>
+            <td className="px-4 py-2 whitespace-nowrap">{formatCurrency(row.nominal)}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  </div>
+)}
+{activeTab === 'detail' && (
+ <>
+    <button
+      onClick={() => setNewItem({})}
+      className="mb-3 bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+    >
+      Tambah Data
+    </button>
       <div className="overflow-x-auto border rounded shadow">
         <table className="min-w-full text-sm">
           <thead className="bg-blue-800 text-white">
@@ -350,6 +519,8 @@ const handleDelete = async (item) => {
           </tbody>
         </table>
       </div>
+</>
+)}
       {/* Modal preview gambar */}
       {imagePreview && (
         <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50" onClick={() => setImagePreview(null)}>
@@ -371,20 +542,17 @@ const handleDelete = async (item) => {
         </div>
       )}
 
-      {(newItem || editItem) && (
+     {(newItem || editItem) && (
   <div className="fixed inset-0 bg-black bg-opacity-30 flex justify-center items-center z-50 overflow-y-auto">
     <div className="bg-white p-6 rounded shadow max-w-xl w-full max-h-[90vh] overflow-y-auto">
       <h2 className="text-lg font-bold mb-4">{editItem ? "Edit Data" : "Tambah Data"}</h2>
       <div className="grid grid-cols-2 gap-4">
-        {[
-          { key: "tanggal", label: "Tanggal", type: "date" },
-          { key: "jenis", label: "Jenis", type: "dropdown" },
-          { key: "keterangan", label: "Keterangan", type: "text" },
-          { key: "nominal", label: "Nominal", type: "number" },
-        ].map(({ key, label, type }) => (
+        {["tanggal", "jenis", "keterangan"].map((key) => (
           <div key={key} className="col-span-2">
-            <label className="block text-sm font-medium mb-1">{label}</label>
-            {type === "dropdown" ? (
+            <label className="block text-sm font-medium mb-1">
+              {key.charAt(0).toUpperCase() + key.slice(1)}
+            </label>
+            {key === "jenis" ? (
               <select
                 className="w-full border px-3 py-2 rounded"
                 value={(editItem || newItem)[key] || ""}
@@ -401,7 +569,7 @@ const handleDelete = async (item) => {
               </select>
             ) : (
               <input
-                type={type}
+                type={key === "tanggal" ? "date" : "text"}
                 className="w-full border px-3 py-2 rounded"
                 value={(editItem || newItem)[key] || ""}
                 onChange={(e) => {
@@ -414,6 +582,22 @@ const handleDelete = async (item) => {
             )}
           </div>
         ))}
+
+        {/* Nominal dengan format Rp */}
+        <div className="col-span-2">
+          <label className="block text-sm font-medium mb-1">Nominal</label>
+          <input
+            type="text"
+            className="w-full border px-3 py-2 rounded"
+            value={formatCurrency((editItem || newItem)?.nominal || 0)}
+            onChange={(e) => {
+              const raw = e.target.value.replace(/[^\d]/g, "");
+              const val = parseInt(raw || "0", 10);
+              if (editItem) setEditItem({ ...editItem, nominal: val });
+              else setNewItem({ ...newItem, nominal: val });
+            }}
+          />
+        </div>
 
         {[1, 2, 3].map((num) => {
           const key = `dokumentasi${num}`;
@@ -455,8 +639,20 @@ const handleDelete = async (item) => {
         })}
       </div>
       <div className="mt-6 flex justify-end gap-2 sticky bottom-0 bg-white pt-4">
-        <button onClick={() => { setEditItem(null); setNewItem(null); }} className="bg-gray-300 px-4 py-2 rounded">Batal</button>
-        <button onClick={handleSave} disabled={isSaving} className="bg-blue-600 text-white px-4 py-2 rounded">
+        <button
+          onClick={() => {
+            setEditItem(null);
+            setNewItem(null);
+          }}
+          className="bg-gray-300 px-4 py-2 rounded"
+        >
+          Batal
+        </button>
+        <button
+          onClick={handleSave}
+          disabled={isSaving}
+          className="bg-blue-600 text-white px-4 py-2 rounded"
+        >
           {isSaving ? "Menyimpan..." : "Simpan"}
         </button>
       </div>
