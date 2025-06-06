@@ -487,14 +487,14 @@ const [activeTab, setActiveTab] = useState('detail');
         <table className="min-w-full text-sm">
           <thead className="bg-blue-800 text-white">
             <tr>
-              <th className="p-2">Tanggal</th>
-              <th>Jenis</th>
-              <th>Keterangan</th>
-              <th>Nominal</th>
-              <th>Dok 1</th>
-              <th>Dok 2</th>
-              <th>Dok 3</th>
-              <th>Aksi</th>
+          <th className="px-2 py-1">Tanggal</th>
+      	  <th className="px-2 py-1">Jenis</th>
+          <th className="px-2 py-1 w-1/3 min-w-[120px]">Keterangan</th>
+          <th className="px-2 py-1">Nominal</th>
+          <th className="px-2 py-1">Dok 1</th>
+          <th className="px-2 py-1">Dok 2</th>
+          <th className="px-2 py-1">Dok 3</th>
+          <th className="px-2 py-1">Aksi</th>
             </tr>
           </thead>
           <tbody>
