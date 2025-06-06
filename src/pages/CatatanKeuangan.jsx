@@ -46,8 +46,10 @@ export default function CatatanKeuangan() {
 
   const totalPemasukan = data.reduce((sum, d) => sum + (d.jenis === "Pemasukan" ? parseFloat(d.nominal) : 0), 0);
   const totalPengeluaran = data.reduce((sum, d) => sum + (d.jenis === "Pengeluaran" ? parseFloat(d.nominal) : 0), 0);
-  const totalSaldo = totalPemasukan - totalPengeluaran;
-
+  const totalBayarPinjaman = data.reduce((sum, d) => sum + (d.jenis === "Bayar Pinjaman" ? parseFloat(d.nominal) : 0), 0);
+  const totalSaldo = totalPemasukan - totalPengeluaran - totalBayarPinjaman;
+  const totalPinjaman = data.reduce((sum, d) => sum + (d.jenis === "Pinjaman" ? parseFloat(d.nominal) : 0), 0);
+  const totalSisaPinjaman = totalPinjaman - totalBayarPinjaman;
   const today = new Date().toISOString().split("T")[0];
   const yesterday = new Date(Date.now() - 86400000).toISOString().split("T")[0];
 
@@ -315,16 +317,23 @@ const handleDelete = async (item) => {
       trend: [1000, 2000, 3000, totalSaldo]
     },
     {
+      label: "Total Pinjaman",
+      value: totalSisaPinjaman,
+      icon: <FaArrowUp />, color: "from-purple-500 to-purple-700",
+      tooltip: "Akumulasi semua pemasukan",
+      trend: [1000, 2500, 4000, totalSisaPinjaman]
+    },
+    {
       label: "Total Pemasukan",
       value: totalPemasukan,
-      icon: <FaArrowUp />, color: "from-green-400 to-green-600",
+      icon: <FaArrowUp />, color: "from-green-500 to-green-700",
       tooltip: "Akumulasi semua pemasukan",
       trend: [1000, 2500, 4000, totalPemasukan]
     },
     {
       label: "Pemasukan Hari Ini",
       value: pemasukanHariIni,
-      icon: <FaArrowUp />, color: "from-emerald-400 to-emerald-600",
+      icon: <FaArrowUp />, color: "from-emerald-500 to-emerald-700",
       tooltip: "Pemasukan yang tercatat hari ini",
       trend: [0, pemasukanHariIni]
     },
@@ -361,7 +370,7 @@ const [activeTab, setActiveTab] = useState('detail');
   return (
     <div className="p-4 text-sm">
    <div className="mb-6 text-center">
-  <div className="flex justify-center items-center gap-2 mb-1">
+  <div className="flex justify-center items-center gap-2 mb-0">
     <div className="text-green-500 text-3xl">
       <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="w-7 h-7">
   <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 6.75A2.25 2.25 0 014.5 4.5h15a2.25 2.25 0 012.25 2.25v10.5A2.25 2.25 0 0119.5 19.5h-15a2.25 2.25 0 01-2.25-2.25V6.75zM2.25 9h19.5" />
@@ -373,6 +382,8 @@ const [activeTab, setActiveTab] = useState('detail');
   </div>
   <p className="text-gray-500 text-sm">Kelola pemasukan & pengeluaran dengan mudah dan rapi</p>
 </div>
+
+  
 
       <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 mb-4">
   {scorecards.map((item, idx) => (
@@ -395,32 +406,27 @@ const [activeTab, setActiveTab] = useState('detail');
   <ReactTooltip id="tooltip-global" place="top" effect="solid" className="text-xs" />
 </div>
 
-
-
-      <div className="flex flex-wrap gap-2 mb-4 items-center">
-        <input type="text" placeholder="Cari keterangan..." className="border p-2 rounded" value={search} onChange={e => setSearch(e.target.value)} />
-        <input type="date" className="border p-2 rounded" value={filterDate} onChange={e => setFilterDate(e.target.value)} />
-        <select className="border p-2 rounded" value={filterMonth} onChange={e => setFilterMonth(e.target.value)}>
+   <div className="flex justify-center flex-wrap gap-1 mb-4 items-center">
+        <input type="text" placeholder="Cari keterangan..." className="border p-1 rounded" value={search} onChange={e => setSearch(e.target.value)} />
+        <input type="date" className="border p-1 rounded" value={filterDate} onChange={e => setFilterDate(e.target.value)} />
+        <select className="border p-1 rounded" value={filterMonth} onChange={e => setFilterMonth(e.target.value)}>
           <option value="">Semua Bulan</option>
           {[...Array(12)].map((_, i) => (
             <option key={i+1} value={String(i+1).padStart(2, '0')}>{String(i+1).padStart(2, '0')}</option>
           ))}
         </select>
-        <select className="border p-2 rounded" value={filterYear} onChange={e => setFilterYear(e.target.value)}>
+        <select className="border py-1 rounded" value={filterYear} onChange={e => setFilterYear(e.target.value)}>
           <option value="">Semua Tahun</option>
           {[...new Set(data.map(d => d.tanggal?.slice(0,4)))].map((year, i) => (
             <option key={i} value={year}>{year}</option>
           ))}
         </select>
+	 <button onClick={exportWithImages} className="bg-green-600 to text-white px-2 p-1 rounded">Export Excel</button>
+        <button onClick={exportToPDFWithImages} className="bg-red-600 text-white px-2 p-1 rounded">Export PDF</button>
       </div>
 
-      <div className="flex gap-2 mb-4">
-        
-        <button onClick={exportWithImages} className="bg-green-700 text-white px-4 py-2 rounded">
-  Export Excel
-</button>
-        <button onClick={exportToPDFWithImages} className="bg-red-600 text-white px-4 py-2 rounded">Export PDF</button>
-      </div>
+      
+
 <div className="mb-4 flex gap-2">
   <button
     onClick={() => setActiveTab('detail')}
@@ -566,6 +572,8 @@ const [activeTab, setActiveTab] = useState('detail');
                 <option value="">Pilih Jenis</option>
                 <option value="Pemasukan">Pemasukan</option>
                 <option value="Pengeluaran">Pengeluaran</option>
+		<option value="Pinjaman">Pinjaman</option>
+		<option value="Bayar Pinjaman">Bayar Pinjaman</option>
               </select>
             ) : (
               <input
@@ -607,7 +615,7 @@ const [activeTab, setActiveTab] = useState('detail');
               <input
                 type="file"
                 accept="image/*"
-                capture
+		capture="environment"
                 onChange={(e) => {
                   const file = e.target.files[0];
                   if (file) {
