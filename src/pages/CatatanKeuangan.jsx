@@ -607,7 +607,7 @@ const [activeTab, setActiveTab] = useState('detail');
               <input
                 type="file"
                 accept="image/*"
-                capture="environment"
+                capture
                 onChange={(e) => {
                   const file = e.target.files[0];
                   if (file) {
