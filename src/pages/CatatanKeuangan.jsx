@@ -638,14 +638,126 @@ const [activeTab, setActiveTab] = useState('detail');
                       const updated = { ...item, [key]: "" };
                       editItem ? setEditItem(updated) : setNewItem(updated);
                     }}
+                    className="absolute -top-2 -rig{(newItem || editItem) && (
+  <div className="fixed inset-0 bg-black bg-opacity-30 flex justify-center items-center z-50 overflow-y-auto">
+    <div className="bg-white p-6 rounded shadow max-w-xl w-full max-h-[90vh] overflow-y-auto">
+      <h2 className="text-lg font-bold mb-4">
+        {editItem ? "Edit Data" : "Tambah Data"}
+      </h2>
+
+      <div className="grid grid-cols-2 gap-4">
+        {["tanggal", "jenis", "keterangan"].map((key) => (
+          <div key={key} className="col-span-2">
+            <label className="block text-sm font-medium mb-1">
+              {key.charAt(0).toUpperCase() + key.slice(1)}
+            </label>
+            {key === "jenis" ? (
+              <select
+                className="w-full border px-3 py-2 rounded"
+                value={(editItem || newItem)[key] || ""}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  editItem
+                    ? setEditItem({ ...editItem, [key]: val })
+                    : setNewItem({ ...newItem, [key]: val });
+                }}
+              >
+                <option value="">Pilih Jenis</option>
+                <option value="Pemasukan">Pemasukan</option>
+                <option value="Pengeluaran">Pengeluaran</option>
+                <option value="Pinjaman">Pinjaman</option>
+                <option value="Bayar Pinjaman">Bayar Pinjaman</option>
+              </select>
+            ) : (
+              <input
+                type={key === "tanggal" ? "date" : "text"}
+                className="w-full border px-3 py-2 rounded"
+                value={(editItem || newItem)[key] || ""}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  editItem
+                    ? setEditItem({ ...editItem, [key]: val })
+                    : setNewItem({ ...newItem, [key]: val });
+                }}
+              />
+            )}
+          </div>
+        ))}
+
+        {/* Nominal dengan format Rp */}
+        <div className="col-span-2">
+          <label className="block text-sm font-medium mb-1">Nominal</label>
+          <input
+            type="text"
+            className="w-full border px-3 py-2 rounded"
+            value={formatCurrency((editItem || newItem)?.nominal || 0)}
+            onChange={(e) => {
+              const raw = e.target.value.replace(/[^\d]/g, "");
+              const val = parseInt(raw || "0", 10);
+              editItem
+                ? setEditItem({ ...editItem, nominal: val })
+                : setNewItem({ ...newItem, nominal: val });
+            }}
+          />
+        </div>
+
+        {/* Dokumentasi 1, 2, 3 */}
+        {[1, 2, 3].map((num) => {
+          const key = `dokumentasi${num}`;
+          const image = (editItem || newItem)[key];
+
+          return (
+            <div key={key} className="col-span-2">
+              <label className="block text-sm font-medium mb-1">
+                Dokumentasi {num}
+              </label>
+              <input
+                type="file"
+                accept="image/*"
+                onChange={(e) => {
+                  const file = e.target.files[0];
+                  if (file) {
+                    const reader = new FileReader();
+                    reader.onload = () => {
+                      const base64 = reader.result;
+                      const item = editItem || newItem;
+                      const updated = { ...item, [key]: base64 };
+                      editItem
+                        ? setEditItem(updated)
+                        : setNewItem(updated);
+                    };
+                    reader.readAsDataURL(file);
+                  }
+                }}
+              />
+
+              {/* Gambar preview */}
+              {image && (
+                <div className="relative mt-2 inline-block">
+                  <img
+                    src={image}
+                    alt={`Dokumentasi ${num}`}
+                    className="h-20 rounded border"
+                  />
+                  <button
+                    onClick={() => {
+                      const item = editItem || newItem;
+                      const updated = { ...item, [key]: "" };
+                      editItem
+                        ? setEditItem(updated)
+                        : setNewItem(updated);
+                    }}
                     className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-5 h-5 text-xs"
-                  >×</button>
+                  >
+                    ×
+                  </button>
                 </div>
               )}
             </div>
           );
         })}
       </div>
+
       <div className="mt-6 flex justify-end gap-2 sticky bottom-0 bg-white pt-4">
         <button
           onClick={() => {
